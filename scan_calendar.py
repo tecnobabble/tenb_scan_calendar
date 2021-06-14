@@ -7,6 +7,7 @@ from tenable.io import TenableIO
 from decouple import config, UndefinedValueError
 from datetime import datetime
 import pytz
+from pprint import pprint
 
 #logging.basicConfig(level=logging.CRITICAL)
 
@@ -57,12 +58,15 @@ def local_datetime(dt, tz, dst):
     return tz.localize(dt, is_dst=dst)
 
 def dt_to_utc(local_dt):
-    return local_dt.astimezone(pytz.utc)
+    return local_dt.astimezone(pytz.utc).strftime('%Y%m%dT%H%M%SZ')
 
 def convert_unix_time(time):
-    return datetime.utcfromtimestamp(time).strftime('%Y%m%dT%H%M%S')
+    return datetime.utcfromtimestamp(time).strftime('%Y%m%dT%H%M%SZ')
 
-def gen_event(name, rrules, starttime, timezone, creation_date):
+def list_avg(lst):
+    return sum(lst) / len(lst)
+
+def gen_event(name, rrules, starttime, timezone, creation_date, owner, scan_type):
     # intialize a new event
     e = Event()
 
@@ -70,11 +74,25 @@ def gen_event(name, rrules, starttime, timezone, creation_date):
     e.name = name
 
     # Set the start time
-    tz_start = str("DTSTART;TZID=" + timezone)
-    start_time_content = ContentLine(name=tz_start, params={}, value=starttime)
-    e.extra.append(start_time_content)
-    #e.begin = starttime
+    e.begin = starttime_utc
 
+    if endtime_utc:
+        e.end = endtime_utc
+
+    e.url = "https://cloud.tenable.com"
+
+    if scan_type == "Agent":
+        scan_length_desc = "The agent scan window has been set in the scan job."
+    elif scan_type == "Network" and estimated_run is True:
+        scan_length_desc = "The scan length has been estimated based on the average of the previously run jobs."
+    else:
+        scan_length_desc = "The duration of the calendar event for this job has defaulted to 1 hour, as we cannot yet estimate how long it will take."
+
+    e.description = "Scan Owner: " + owner + "\n" + \
+            "Scan Type: " + scan_type + "\n" + \
+            "Scan Length: " + scan_length_desc
+
+    
     # Set the schedule, if it exists
     if "FREQ=ONETIME" not in rrules:
         rrule_content = ContentLine(name='RRULE', params={}, value=rrules)
@@ -84,16 +102,7 @@ def gen_event(name, rrules, starttime, timezone, creation_date):
     dtstamp_content = ContentLine(name='DTSTAMP', params={}, value=dtstamp_set)
     e.extra.append(dtstamp_content)
 
-    # Set the timezone in multiple places cause of different silly implementations
-    #tzid_content = ContentLine(name='TZID', params={}, value=timezone)
-    #e.extra.append(tzid_content)
-    #x_wr_timezone_content = ContentLine(name='X-WR-TIMEZONE', params={}, value=timezone)
-    #e.extra.append(x_wr_timezone_content)
-    #x_lic_location_content = ContentLine(name='X-LIC-LOCATION', params={}, value=timezone)
-    #e.extra.append(x_lic_location_content)
-    
     # add all to events
-    print(e)
     c.events.add(e)
 
 # All the actual processing goes here
@@ -101,22 +110,56 @@ for scan in tio.scans.list():
     if '{enabled}'.format(**scan) == "True":
         tz_format = get_timezone('{timezone}'.format(**scan))
         dst = is_dst('{timezone}'.format(**scan), convert_dt_obj('{starttime}'.format(**scan)))
-        starttime_utc = dt_to_utc(local_datetime(convert_dt_obj('{starttime}'.format(**scan)), tz_format, dst))
         
-        print(tz_format)
-        print(dst)
-        print('{starttime}'.format(**scan))
-        print(starttime_utc)
-        
+        starttime_utc_dt = local_datetime(convert_dt_obj('{starttime}'.format(**scan)), tz_format, dst)
+        starttime_utc = dt_to_utc(starttime_utc_dt)
+
+        # We're going to have to do fun things to determine scan endtimes.
+        if scan.get('type') == "agent":
+            scan_type = "Agent"
+            scan_editor_id_path = "editor/scan/" + '{id}'.format(**scan)
+            scan_details_resp = tio.get(scan_editor_id_path)
+            scan_details = scan_details_resp.json().get('settings').get('basic').get('inputs')
+            for item in scan_details:
+                if item.get('id') == "scan_time_window":
+                    scan_window_time = item.get('default')
+            endtime = (scan_window_time * 60)
+            endtime_utc = convert_unix_time(int(starttime_utc_dt.timestamp()) + endtime)
+            estimated_run = False
+        else:
+            endtime_utc = None
+            estimated_run = False
+            scan_type = "Network"
+            # if the scan isn't a one-off, check to see if there is a history 
+            # we can use to guess the time it's going to take to run.
+            if scan.get('rrules') != "FREQ=ONETIME":
+                scan_history = tio.scans.history(scan.get('id'))
+                scan_duration = []
+                scan_duration_count = 5
+                scan_duration_iter = 0
+                for past_scan in scan_history:
+                    if past_scan.get('status') == "completed":
+                        scan_duration.append(past_scan.get('time_end') - past_scan.get('time_start'))
+                        scan_duration_iter+=1
+                        if scan_duration_iter == scan_duration_count:
+                            break
+                endtime = list_avg(scan_duration)
+                endtime_utc = convert_unix_time(int(starttime_utc_dt.timestamp()) + endtime)
+                estimated_run = True
+     
+        #print(scan)
         gen_event(
                 '{name}'.format(**scan), \
                 '{rrules}'.format(**scan), \
                 '{starttime}'.format(**scan), \
                 '{timezone}'.format(**scan), \
-                int('{creation_date}'.format(**scan))
+                int('{creation_date}'.format(**scan)), \
+                '{owner}'.format(**scan), \
+                scan_type
                 )
-        #print('{name}: {id}/{uuid} - {rrules} - {starttime} - {timezone}'.format(**scan))
-        print(scan)
+
+#for policy in tio.policies.list():
+#    pprint(policy)
 
 # Put all the events into the 'calendar'
 c.events
