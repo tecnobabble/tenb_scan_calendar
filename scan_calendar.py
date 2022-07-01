@@ -7,6 +7,7 @@ from tenable.sc import TenableSC
 from decouple import config, UndefinedValueError
 from datetime import datetime
 from dateutil import parser
+import json
 import ast
 import pytz
 import os
@@ -56,6 +57,9 @@ sc = tsc_login()
 
 
 # Define Functions
+def sc_response_parse(response):
+    return json.loads(response.text)['response']
+
 def get_timezone(tz_str):
     return pytz.timezone(tz_str)
 
@@ -87,12 +91,22 @@ def convert_unix_time(time):
 def list_avg(lst):
     return sum(lst) / len(lst)
 
-def gen_event(name, rrules, starttime, timezone, creation_date, owner, scan_type, description):
+def return_utc(timezone,timestamp):
+        tz_format = get_timezone(timezone)
+        dst = is_dst(timezone, convert_dt_obj(timestamp))
+        timestamp_utc_dt = local_datetime(convert_dt_obj(timestamp), tz_format, dst)
+        return dt_to_utc(timestamp_utc_dt),timestamp_utc_dt
+
+def gen_event(name, rrules, starttime, timezone, creation_date, owner, scan_type, description, uuid):
     # intialize a new event
     e = Event()
 
     # Set the event name
     e.summary = name
+
+    # Set the uuid
+
+    e.uid = uuid + "@schedule.invalid"
 
     # Set the start time
     e.begin = parser.parse(starttime_utc)
@@ -100,7 +114,7 @@ def gen_event(name, rrules, starttime, timezone, creation_date, owner, scan_type
     if endtime_utc:
         e.end = parser.parse(endtime_utc)
 
-    e.url = "https://cloud.tenable.com"
+    #e.url = "https://cloud.tenable.com"
 
     if scan_type == "Agent":
         scan_length_desc = "The agent scan window has been set in the scan job."
@@ -130,16 +144,16 @@ def gen_event(name, rrules, starttime, timezone, creation_date, owner, scan_type
     # add all to events
     c.events.append(e)
 
-# All the actual processing goes here
+# Pull scan results as we will use them later
+tsc_scan_resutls = sc_response_parse(sc.get('scanResult?fields=id,name,description,repository,details,scanDuration&filter=optimizeCompletedScans'))['manageable']
+
+# All the actual processing goes here for network scans
 for scan in sc.scans.list(['id','name','schedule', 'createdTime', 'owner','maxScanTime', 'ipList', 'assets', 'description'])['manageable']:
     if '{schedule[enabled]}'.format(**scan) == "true":
         raw_timezone = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[0]
         raw_start = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[1]
-        tz_format = get_timezone(raw_timezone)
-        dst = is_dst(raw_timezone, convert_dt_obj(raw_start))
-        
-        starttime_utc_dt = local_datetime(convert_dt_obj(raw_start), tz_format, dst)
-        starttime_utc = dt_to_utc(starttime_utc_dt)
+
+        starttime_utc,starttime_utc_dt = return_utc(raw_timezone, raw_start)
 
         # We're going to have to do fun things to determine scan endtimes.
         if '{maxScanTime}'.format(**scan) != 'unlimited':
@@ -147,17 +161,6 @@ for scan in sc.scans.list(['id','name','schedule', 'createdTime', 'owner','maxSc
             endtime_utc = convert_unix_time(int(starttime_utc_dt.timestamp()) + endtime)
             estimated_run = False
             scan_type = "Network"
-        elif scan.get('type') == "agent":
-            scan_type = "Agent"
-            scan_editor_id_path = "editor/scan/" + '{id}'.format(**scan)
-            scan_details_resp = sc.get(scan_editor_id_path)
-            scan_details = scan_details_resp.json().get('settings').get('basic').get('inputs')
-            for item in scan_details:
-                if item.get('id') == "scan_time_window":
-                    scan_window_time = item.get('default')
-            endtime = (scan_window_time * 60)
-            endtime_utc = convert_unix_time(int(starttime_utc_dt.timestamp()) + endtime)
-            estimated_run = False
         else:
             endtime_utc = None
             estimated_run = False
@@ -183,6 +186,7 @@ for scan in sc.scans.list(['id','name','schedule', 'createdTime', 'owner','maxSc
             '''
 
 
+        # Display some meaningful data around the scan targets
         asset_list = ""
         asset_targets = ast.literal_eval('{assets}'.format(**scan))
         if len(asset_targets) > 0:
@@ -190,6 +194,8 @@ for scan in sc.scans.list(['id','name','schedule', 'createdTime', 'owner','maxSc
                 asset_list+= x['name'] + " "
         scan_targets = "Targeted Assets: " + asset_list + "\n" + \
             "Targeted IPs: " + '{ipList}'.format(**scan)
+
+        # Generate the event
         gen_event(
                 '{name}'.format(**scan), \
                 '{schedule[repeatRule]}'.format(**scan), \
@@ -199,14 +205,35 @@ for scan in sc.scans.list(['id','name','schedule', 'createdTime', 'owner','maxSc
                 '{owner[username]}'.format(**scan), \
                 scan_type, \
                 '{description}'.format(**scan), \
+                '{uuid}'.format(**scan)
                 )
+'''
+# let's pull agent sync jobs
+for scan in sc_response_parse(sc.get('agentResultsSync?fields=id,name,description,createdTime,owner,schedule,scansGlob'))['manageable']:
+    print(scan)
 
-#for policy in tio.policies.list():
-#    pprint(policy)
-
+# Let's pull regular agent jobs
+for scan in sc_response_parse(sc.get('agentScan?fields=id,name,description,agentGroups,createdTime,owner,schedule'))['manageable']:
+    print(scan)
+'''
 # Put all the events into the 'calendar'
 c.events
 
 # Write out the calendar file
 with open('tenablesc_scans.ics', 'w') as my_file:
     my_file.writelines(c)
+
+'''
+elif scan.get('type') == "agent":
+            scan_type = "Agent"
+            scan_editor_id_path = "editor/scan/" + '{id}'.format(**scan)
+            scan_details_resp = sc.get(scan_editor_id_path)
+            scan_details = scan_details_resp.json().get('settings').get('basic').get('inputs')
+            for item in scan_details:
+                if item.get('id') == "scan_time_window":
+                    scan_window_time = item.get('default')
+            endtime = (scan_window_time * 60)
+            endtime_utc = convert_unix_time(int(starttime_utc_dt.timestamp()) + endtime)
+            estimated_run = False
+            
+'''

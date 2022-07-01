@@ -21,3 +21,11 @@ SC_PORT=443
 * Must be run once per tenable.sc 'organization' (and rename the ics file after each run)
 
 Tested on python 3.10; will likely work on 3.6+
+
+### Todo:
+* Support Agent Sync
+* Support Direct Agent Scans
+* Pull network scan completetion times to estimate future runtime
+* Support multiple orgs
+* Support t.io
+
