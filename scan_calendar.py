@@ -145,10 +145,12 @@ def gen_event(name, rrules, starttime, timezone, creation_date, owner, scan_type
     c.events.append(e)
 
 # Pull scan results as we will use them later
-tsc_scan_resutls = sc_response_parse(sc.get('scanResult?fields=id,name,description,repository,details,scanDuration&filter=optimizeCompletedScans'))['manageable']
+tsc_scan_results = sc_response_parse(sc.get('scanResult?fields=id,name,finishTime,description,repository,details,scanDuration&filter=optimizeCompletedScans'))['manageable']
 
 # All the actual processing goes here for network scans
-for scan in sc.scans.list(['id','name','schedule', 'createdTime', 'owner','maxScanTime', 'ipList', 'assets', 'description'])['manageable']:
+for scan in sc.scans.list(['id','name','policy','schedule', 'createdTime', 'owner','maxScanTime', 'ipList', 'assets', 'description'])['manageable']:
+    #print(scan)
+    #exit()
     if '{schedule[enabled]}'.format(**scan) == "true":
         raw_timezone = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[0]
         raw_start = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[1]
@@ -165,26 +167,21 @@ for scan in sc.scans.list(['id','name','schedule', 'createdTime', 'owner','maxSc
             endtime_utc = None
             estimated_run = False
             scan_type = "Network"
-            '''
-            # if the scan isn't a one-off, check to see if there is a history 
-            # we can use to guess the time it's going to take to run.
-            
-            if scan.get('schedule').get('repeatRule') != "FREQ=ONETIME":
-                scan_history = sc.scans.history(scan.get('id'))
-                scan_duration = []
-                scan_duration_count = 5
-                scan_duration_iter = 0
-                for past_scan in scan_history:
-                    if past_scan.get('status') == "completed":
-                        scan_duration.append(past_scan.get('time_end') - past_scan.get('time_start'))
-                        scan_duration_iter+=1
-                        if scan_duration_iter == scan_duration_count:
-                            break
-                endtime = list_avg(scan_duration)
+
+            #time to do crazy things to determine average scan time
+            matching_results = []
+            scantime = int()
+            # loop through scan results and match up with scan name and policy name
+            for result in tsc_scan_results:
+                if '{name}'.format(**scan) == '{name}'.format(**result) and '{details}'.format(**result) == '{policy[name]}'.format(**scan) and '{scanDuration}'.format(**result) != "-1":
+                    matching_results.append({'finishTime': '{finishTime}'.format(**result), 'scanDuration': '{scanDuration}'.format(**result)})
+            matching_results = sorted(matching_results, key=lambda d: d['finishTime'])[-3:]
+            if len(matching_results) == 3:
+                for result_match in matching_results:
+                    scantime += int(result_match['scanDuration'])
+                endtime = ( scantime / 3 ) 
                 endtime_utc = convert_unix_time(int(starttime_utc_dt.timestamp()) + endtime)
                 estimated_run = True
-            '''
-
 
         # Display some meaningful data around the scan targets
         asset_list = ""

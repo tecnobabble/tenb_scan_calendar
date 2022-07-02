@@ -25,7 +25,10 @@ Tested on python 3.10; will likely work on 3.6+
 ### Todo:
 * Support Agent Sync
 * Support Direct Agent Scans
-* Pull network scan completetion times to estimate future runtime
+* ~~Pull network scan completetion times to estimate future runtime~~
 * Support multiple orgs
+* Support T.sc Director
 * Support t.io
 
+### Thanks
+Made possible largely by ics-py (https://github.com/ics-py/ics-py)
