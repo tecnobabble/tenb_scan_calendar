@@ -1,0 +1,4 @@
+python-decouple==3.6
+pytz==2022.1
+pytenable>=1.4.7
+ics @ git+https://github.com/ics-py/ics-py.git@3b931be0d36011e28b88111b1b9132961e9bb288
