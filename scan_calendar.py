@@ -11,6 +11,8 @@ import json
 import ast
 import pytz
 import os
+import uuid
+import random
 from pprint import pprint
 
 #logging.basicConfig(level=logging.CRITICAL)
@@ -38,8 +40,9 @@ def tsc_login():
         raise SystemExit(err)
     return sc
 
+# set global stuff"
 
-
+rd = random.Random()
 
 
 # Debugging bit
@@ -97,7 +100,7 @@ def return_utc(timezone,timestamp):
         timestamp_utc_dt = local_datetime(convert_dt_obj(timestamp), tz_format, dst)
         return dt_to_utc(timestamp_utc_dt),timestamp_utc_dt
 
-def gen_event(name, rrules, starttime, timezone, creation_date, owner, scan_type, description, uuid):
+def gen_event(name, rrules, starttime, timezone, creation_date, owner, scan_type, description, uuid, scan_targets):
     # intialize a new event
     e = Event()
 
@@ -149,16 +152,14 @@ tsc_scan_results = sc_response_parse(sc.get('scanResult?fields=id,name,finishTim
 
 # All the actual processing goes here for network scans
 for scan in sc.scans.list(['id','name','policy','schedule', 'createdTime', 'owner','maxScanTime', 'ipList', 'assets', 'description'])['manageable']:
-    #print(scan)
-    #exit()
     if '{schedule[enabled]}'.format(**scan) == "true"  and '{schedule[start]}'.format(**scan) != "":
         raw_timezone = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[0]
         raw_start = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[1]
-
         starttime_utc,starttime_utc_dt = return_utc(raw_timezone, raw_start)
 
         # We're going to have to do fun things to determine scan endtimes.
         if '{maxScanTime}'.format(**scan) != 'unlimited':
+            # 'maxScanTime is in hours, so we convert to seconds
             endtime = (int('{maxScanTime}'.format(**scan)) * 60 * 60)
             endtime_utc = convert_unix_time(int(starttime_utc_dt.timestamp()) + endtime)
             estimated_run = False
@@ -202,17 +203,58 @@ for scan in sc.scans.list(['id','name','policy','schedule', 'createdTime', 'owne
                 '{owner[username]}'.format(**scan), \
                 scan_type, \
                 '{description}'.format(**scan), \
-                '{uuid}'.format(**scan)
+                '{uuid}'.format(**scan), \
+                scan_targets
                 )
 '''
 # let's pull agent sync jobs
 for scan in sc_response_parse(sc.get('agentResultsSync?fields=id,name,description,createdTime,owner,schedule,scansGlob'))['manageable']:
     print(scan)
-
-# Let's pull regular agent jobs
-for scan in sc_response_parse(sc.get('agentScan?fields=id,name,description,agentGroups,createdTime,owner,schedule'))['manageable']:
-    print(scan)
 '''
+# Let's pull regular agent jobs
+for scan in sc_response_parse(sc.get('agentScan?fields=id,name,description,createdTime,owner,schedule,scanWindow,nessusManager,repository'))['manageable']:
+    group_list = ""
+    agent_group = ""
+    scan_type = "Agent"
+
+    if '{schedule[start]}'.format(**scan) != "":
+        raw_timezone = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[0]
+        raw_start = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[1]
+        starttime_utc,starttime_utc_dt = return_utc(raw_timezone, raw_start)
+        
+        # 'scanWindow should always be defined
+        # 'scanWindow' is in minutes, so we convert to seconds
+        endtime = (int('{scanWindow}'.format(**scan)) * 60)
+        endtime_utc = convert_unix_time(int(starttime_utc_dt.timestamp()) + endtime)
+        estimated_run = False
+
+        # We have to ask for more data around each agent scan because the tenable.sc api won't let us get it.
+        agent_group = sc_response_parse(sc.get('agentScan/' + '{id}'.format(**scan) + '?fields=agentGroups'))['agentGroups']
+
+        if len(agent_group) > 0:
+            for x in agent_group:
+                group_list+= x['name'] + " "
+        scan_targets = "Targeted Agent Groups: " + group_list
+
+        # agent scans don't have UUIDs for some reason, so we have to generate a consistent one based on some info
+        as_seed = '{id}'.format(**scan) + '{createdTime}'.format(**scan)
+        rd.seed(as_seed)
+        as_uuid = str(uuid.UUID(int=rd.getrandbits(128), version=4))
+
+        # Generate the event
+        gen_event(
+                '{name}'.format(**scan), \
+                '{schedule[repeatRule]}'.format(**scan), \
+                raw_start, \
+                raw_timezone, \
+                int('{createdTime}'.format(**scan)), \
+                '{owner[username]}'.format(**scan), \
+                scan_type, \
+                '{description}'.format(**scan), \
+                as_uuid, \
+                scan_targets
+                )
+
 # Put all the events into the 'calendar'
 c.events
 
