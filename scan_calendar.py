@@ -151,7 +151,7 @@ tsc_scan_results = sc_response_parse(sc.get('scanResult?fields=id,name,finishTim
 for scan in sc.scans.list(['id','name','policy','schedule', 'createdTime', 'owner','maxScanTime', 'ipList', 'assets', 'description'])['manageable']:
     #print(scan)
     #exit()
-    if '{schedule[enabled]}'.format(**scan) == "true":
+    if '{schedule[enabled]}'.format(**scan) == "true"  and '{schedule[start]}'.format(**scan) != "":
         raw_timezone = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[0]
         raw_start = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[1]
 
