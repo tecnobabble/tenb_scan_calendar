@@ -14,7 +14,7 @@ SC_ADDRESS=10.0.0.102
 SC_PORT=443  
 ```
 ### Requirements
-* Must be T.sc 5.13 or above.
+* Must be T.sc 5.19 or above.
 * Must enable API auth application wide
 * Must create or use existing API keys for a user that can "Create Scans" as part of their role (Vulnerability Analyst, Security Analyst, Security Manager or custom) and that can manage all objects for all groups.
 * Works for direct agent scans and network based scans
