@@ -1,49 +1,52 @@
 #!/usr/bin/env python
 
+from click import pass_context
 from ics import Event, Calendar, ContentLine
 import logging
 #from tenable.io import TenableIO
 from tenable.sc import TenableSC
 from decouple import config, UndefinedValueError
-from datetime import datetime
-from dateutil import parser
-import json
-import ast
-import pytz
+
+
 import os
-import uuid
-import random
+
 from pprint import pprint
+
+import lib.auth
+import lib.common
+import lib.sc
+
 
 #logging.basicConfig(level=logging.CRITICAL)
 
-# Set some variables that need setting (pulled from .env file passed to container or seen locally in the same folder as script)
+# Let's initialize the calendar before anything else
+c = Calendar()
+
+# Check local configuration to see what to do
+io_configured = False
+sc_configured = False
+nessus_configured = False
+
 try:
-    sc_address = config('SC_ADDRESS')
-    sc_access_key = config('SC_ACCESS_KEY')
-    sc_secret_key = config('SC_SECRET_KEY')
-    sc_port = config('SC_PORT', default=443)
-    debug_set = config('DEBUG', cast=bool, default=False)
-except UndefinedValueError as err:
-    print("Please review the documentation and define the required connection details in an environment file.")
-    print()
-    raise SystemExit(err)
+    if config('IO_URL'):
+        io_configured = True
+        print("io in env")
+except UndefinedValueError as err: 
+    pass
+try:
+    if config('SC_ADDRESS'):
+        sc_configured = True
+        print("SC in env")
+except UndefinedValueError as err: 
+    pass
+try:
+    if config('NESSUS_ADDRESS'):
+        nessus_configured = True
+        print('nessus in env')
+except UndefinedValueError as err: 
+    pass
 
-# Login to Tenable.sc
-def tsc_login():
-    try:
-        sc = TenableSC(sc_address, port=sc_port, access_key=sc_access_key, secret_key=sc_secret_key, backoff=5.0, timeout=10)
-    except (NameError, TimeoutError) as err:
-        print("Please verify connection details.")
-        exit()
-    except (ConnectionError) as err:
-        raise SystemExit(err)
-    return sc
-
-# set global stuff"
-
-rd = random.Random()
-
+debug_set = config('DEBUG', cast=bool, default=False)
 
 # Debugging bit
 if debug_set is True:
@@ -51,215 +54,35 @@ if debug_set is True:
 else:
     logging.basicConfig(level=logging.CRITICAL)
 
-# Let's initialize the calendar before anything else
-c = Calendar()
 
-#Login to stuff
+####################
 
-sc = tsc_login()
+if io_configured:
+    io_address = config('IO_URL', default="https://cloud.tenable.com")
+    io_access_key = config('IO_ACCESS_KEY', default="123e4567-e89b-12d3-a456-426614174000")
+    io_secret_key = config('IO_SECRET_KEY', default="123e4567-e89b-12d3-a456-426614174000")
+    print('IO Configured')
+
+if sc_configured:
+    sc_address = config('SC_ADDRESS', default="https://127.0.0.1")
+    sc_access_key = config('SC_ACCESS_KEY', default="123e4567-e89b-12d3-a456-426614174000")
+    sc_secret_key = config('SC_SECRET_KEY', default="123e4567-e89b-12d3-a456-426614174000")
+    sc_port = config('SC_PORT', default=443)
+    print('SC Configured')
+    sc = lib.auth.tsc_login(sc_address, sc_access_key, sc_secret_key, sc_port)
+    c.events = lib.sc.sc_parse(sc, c)
 
 
-# Define Functions
-def sc_response_parse(response):
-    return json.loads(response.text)['response']
+if nessus_configured:
+    nessus_address = config('NESSUS_ADDRESS', default="https://127.0.0.1")
+    nessus_access_key = config('NESSUS_ACCESS_KEY', default="123e4567-e89b-12d3-a456-426614174000")
+    nessus_secret_key = config('NESSUS_SECRET_KEY', default="123e4567-e89b-12d3-a456-426614174000")
+    nessus_port = config('NESSUS_PORT', default=8834)
+    print('Nessus Configured')
 
-def get_timezone(tz_str):
-    return pytz.timezone(tz_str)
-
-def is_dst(tz, datetime_to_check):
-    """Determine whether or not Daylight Savings Time (DST)
-    is currently in effect. From 
-    https://gist.github.com/dpapathanasiou/09bd2885813038d7d3eb"""
-
-    # Jan 1 of this year, when all tz assumed to not be in dst
-    non_dst = datetime(year=datetime.now().year, month=1, day=1)
-    # Make time zone aware based on tz passed in
-    non_dst_tz_aware = pytz.timezone(tz).localize(non_dst)
-
-    # if DST is in effect, their offsets will be different
-    return not (non_dst_tz_aware.utcoffset() == datetime_to_check.utcoffset())
-
-def convert_dt_obj(dt):
-    return datetime.strptime(dt, "%Y%m%dT%H%M%S")
-
-def local_datetime(dt, tz, dst):
-    return tz.localize(dt, is_dst=dst)
-
-def dt_to_utc(local_dt):
-    return local_dt.astimezone(pytz.utc).strftime('%Y%m%dT%H%M%SZ')
-
-def convert_unix_time(time):
-    return datetime.utcfromtimestamp(time).strftime('%Y%m%dT%H%M%SZ')
-
-def list_avg(lst):
-    return sum(lst) / len(lst)
-
-def return_utc(timezone,timestamp):
-        tz_format = get_timezone(timezone)
-        dst = is_dst(timezone, convert_dt_obj(timestamp))
-        timestamp_utc_dt = local_datetime(convert_dt_obj(timestamp), tz_format, dst)
-        return dt_to_utc(timestamp_utc_dt),timestamp_utc_dt
-
-def gen_event(name, rrules, starttime, timezone, creation_date, owner, scan_type, description, uuid, scan_targets):
-    # intialize a new event
-    e = Event()
-
-    # Set the event name
-    e.summary = name
-
-    # Set the uuid
-
-    e.uid = uuid + "@schedule.invalid"
-
-    # Set the start time
-    e.begin = parser.parse(starttime_utc)
-
-    if endtime_utc:
-        e.end = parser.parse(endtime_utc)
-
-    #e.url = "https://cloud.tenable.com"
-
-    if scan_type == "Agent":
-        scan_length_desc = "The agent scan window has been set in the scan job."
-    elif scan_type == "Network" and estimated_run is True:
-        scan_length_desc = "The scan time has been estimated based on the average of the previously run jobs."
-    elif scan_type == "Network" and estimated_run is False and endtime_utc:
-        scan_length_desc = "The max scan time has been set in the job."
-    else:
-        scan_length_desc = "The duration of the calendar event for this job has defaulted to 1 hour, as we cannot yet estimate how long it will take and no max has been set."
-
-    e.description = "Scan Owner: " + owner + "\n" + \
-            "Scan Description: " + description + "\n" + \
-            "Scan Type: " + scan_type + "\n" + \
-            scan_targets + "\n" + \
-            "Scan Length: " + scan_length_desc
-
-    
-    # Set the schedule, if it exists
-    if "FREQ=ONETIME" not in rrules and rrules != "":
-        rrule_content = ContentLine(name='RRULE', params={}, value=rrules)
-        e.extra.append(rrule_content)
- 
-    dtstamp_set = convert_unix_time(creation_date)
-    dtstamp_content = ContentLine(name='DTSTAMP', params={}, value=dtstamp_set)
-    e.extra.append(dtstamp_content)
-
-    # add all to events
-    c.events.append(e)
-
-# Pull scan results as we will use them later
-tsc_scan_results = sc_response_parse(sc.get('scanResult?fields=id,name,finishTime,description,repository,details,scanDuration&filter=optimizeCompletedScans'))['manageable']
-
-# All the actual processing goes here for network scans
-for scan in sc.scans.list(['id','name','policy','schedule', 'createdTime', 'owner','maxScanTime', 'ipList', 'assets', 'description'])['manageable']:
-    if '{schedule[enabled]}'.format(**scan) == "true"  and '{schedule[start]}'.format(**scan) != "":
-        raw_timezone = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[0]
-        raw_start = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[1]
-        starttime_utc,starttime_utc_dt = return_utc(raw_timezone, raw_start)
-
-        # We're going to have to do fun things to determine scan endtimes.
-        if '{maxScanTime}'.format(**scan) != 'unlimited':
-            # 'maxScanTime is in hours, so we convert to seconds
-            endtime = (int('{maxScanTime}'.format(**scan)) * 60 * 60)
-            endtime_utc = convert_unix_time(int(starttime_utc_dt.timestamp()) + endtime)
-            estimated_run = False
-            scan_type = "Network"
-        else:
-            endtime_utc = None
-            estimated_run = False
-            scan_type = "Network"
-
-            #time to do crazy things to determine average scan time
-            matching_results = []
-            scantime = int()
-            # loop through scan results and match up with scan name and policy name
-            for result in tsc_scan_results:
-                if '{name}'.format(**scan) == '{name}'.format(**result) and '{details}'.format(**result) == '{policy[name]}'.format(**scan) and '{scanDuration}'.format(**result) != "-1":
-                    matching_results.append({'finishTime': '{finishTime}'.format(**result), 'scanDuration': '{scanDuration}'.format(**result)})
-            matching_results = sorted(matching_results, key=lambda d: d['finishTime'])[-3:]
-            if len(matching_results) == 3:
-                for result_match in matching_results:
-                    scantime += int(result_match['scanDuration'])
-                endtime = ( scantime / 3 ) 
-                endtime_utc = convert_unix_time(int(starttime_utc_dt.timestamp()) + endtime)
-                estimated_run = True
-
-        # Display some meaningful data around the scan targets
-        asset_list = ""
-        asset_targets = ast.literal_eval('{assets}'.format(**scan))
-        if len(asset_targets) > 0:
-            for x in asset_targets:
-                asset_list+= x['name'] + " "
-        scan_targets = "Targeted Assets: " + asset_list + "\n" + \
-            "Targeted IPs: " + '{ipList}'.format(**scan)
-
-        # Generate the event
-        gen_event(
-                '{name}'.format(**scan), \
-                '{schedule[repeatRule]}'.format(**scan), \
-                raw_start, \
-                raw_timezone, \
-                int('{createdTime}'.format(**scan)), \
-                '{owner[username]}'.format(**scan), \
-                scan_type, \
-                '{description}'.format(**scan), \
-                '{uuid}'.format(**scan), \
-                scan_targets
-                )
-'''
-# let's pull agent sync jobs
-for scan in sc_response_parse(sc.get('agentResultsSync?fields=id,name,description,createdTime,owner,schedule,scansGlob'))['manageable']:
-    print(scan)
-'''
-# Let's pull regular agent jobs
-for scan in sc_response_parse(sc.get('agentScan?fields=id,name,description,createdTime,owner,schedule,scanWindow,nessusManager,repository'))['manageable']:
-    group_list = ""
-    agent_group = ""
-    scan_type = "Agent"
-
-    if '{schedule[start]}'.format(**scan) != "":
-        raw_timezone = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[0]
-        raw_start = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[1]
-        starttime_utc,starttime_utc_dt = return_utc(raw_timezone, raw_start)
-        
-        # 'scanWindow should always be defined
-        # 'scanWindow' is in minutes, so we convert to seconds
-        endtime = (int('{scanWindow}'.format(**scan)) * 60)
-        endtime_utc = convert_unix_time(int(starttime_utc_dt.timestamp()) + endtime)
-        estimated_run = False
-
-        # We have to ask for more data around each agent scan because the tenable.sc api won't let us get it.
-        agent_group = sc_response_parse(sc.get('agentScan/' + '{id}'.format(**scan) + '?fields=agentGroups'))['agentGroups']
-
-        if len(agent_group) > 0:
-            for x in agent_group:
-                group_list+= x['name'] + " "
-        scan_targets = "Targeted Agent Groups: " + group_list
-
-        # agent scans don't have UUIDs for some reason, so we have to generate a consistent one based on some info
-        as_seed = '{id}'.format(**scan) + '{createdTime}'.format(**scan)
-        rd.seed(as_seed)
-        as_uuid = str(uuid.UUID(int=rd.getrandbits(128), version=4))
-
-        # Generate the event
-        gen_event(
-                '{name}'.format(**scan), \
-                '{schedule[repeatRule]}'.format(**scan), \
-                raw_start, \
-                raw_timezone, \
-                int('{createdTime}'.format(**scan)), \
-                '{owner[username]}'.format(**scan), \
-                scan_type, \
-                '{description}'.format(**scan), \
-                as_uuid, \
-                scan_targets
-                )
-
-# Put all the events into the 'calendar'
-c.events
 
 # Write out the calendar file
-with open('tenablesc_scans.ics', 'w') as my_file:
+with open('tenable_scans.ics', 'w') as my_file:
     my_file.writelines(c)
 
 '''

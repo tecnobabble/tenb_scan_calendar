@@ -1,3 +1,5 @@
 
 *.env
 *.ics
+*.DS_Store
+*.pyc
