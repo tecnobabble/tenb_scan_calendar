@@ -17,18 +17,22 @@ SC_PORT=443
 * Must be T.sc 5.13 or above.
 * Must enable API auth application wide
 * Must create or use existing API keys for a user that can "Create Scans" as part of their role (Vulnerability Analyst, Security Analyst, Security Manager or custom) and that can manage all objects for all groups.
-* Initially only works with network scans (not agents)
+* Works for direct agent scans and network based scans
 * Must be run once per tenable.sc 'organization' (and rename the ics file after each run)
 
 Tested on python 3.10; will likely work on 3.6+
 
 ### Todo:
-* Support Agent Sync
-* Support Direct Agent Scans
+* ~~Support Direct Agent Scans~~
 * ~~Pull network scan completetion times to estimate future runtime~~
 * Support multiple orgs
-* Support T.sc Director
 * Support t.io
+* Support Nessus (all flavors)
+* * Support T.sc Director
+
+### Problematic things:
+* Agent Sync Jobs
+** All the details we need are in the Agent Manager, not T.sc
 
 ### Thanks
 Made possible largely by ics-py (https://github.com/ics-py/ics-py)
