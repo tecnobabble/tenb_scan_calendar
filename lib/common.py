@@ -1,6 +1,5 @@
 
 import json
-
 import pytz
 from datetime import datetime
 from dateutil import parser
@@ -43,47 +42,46 @@ def return_utc(timezone,timestamp):
         timestamp_utc_dt = local_datetime(convert_dt_obj(timestamp), tz_format, dst)
         return dt_to_utc(timestamp_utc_dt),timestamp_utc_dt
 
-def gen_event(name, rrules, starttime, timezone, creation_date, owner, scan_type, description, uuid, scan_targets, starttime_utc, endtime_utc, estimated_run):
+def gen_event(parsed_scan):
     # intialize a new event
     e = Event()
 
     # Set the event name
-    e.summary = name
+    e.summary = parsed_scan['name']
 
     # Set the uuid
 
-    e.uid = uuid + "@schedule.invalid"
+    e.uid = parsed_scan['uuid'] + "@schedule.invalid"
 
     # Set the start time
-    e.begin = parser.parse(starttime_utc)
+    e.begin = parser.parse(parsed_scan['starttime_utc'])
 
-    if endtime_utc:
-        e.end = parser.parse(endtime_utc)
+    if parsed_scan['endtime_utc']:
+        e.end = parser.parse(parsed_scan['endtime_utc'])
 
-    #e.url = "https://cloud.tenable.com"
 
-    if scan_type == "Agent":
+    if parsed_scan['scan_type'] == "Agent":
         scan_length_desc = "The agent scan window has been set in the scan job."
-    elif scan_type == "Network" and estimated_run is True:
+    elif parsed_scan['scan_type'] == "Network" and parsed_scan['estimated_run'] is True:
         scan_length_desc = "The scan time has been estimated based on the average of the previously run jobs."
-    elif scan_type == "Network" and estimated_run is False and endtime_utc:
+    elif parsed_scan['scan_type'] == "Network" and parsed_scan['estimated_run'] is False and parsed_scan['endtime_utc']:
         scan_length_desc = "The max scan time has been set in the job."
     else:
         scan_length_desc = "The duration of the calendar event for this job has defaulted to 1 hour, as we cannot yet estimate how long it will take and no max has been set."
 
-    e.description = "Scan Owner: " + owner + "\n" + \
-            "Scan Description: " + description + "\n" + \
-            "Scan Type: " + scan_type + "\n" + \
-            scan_targets + "\n" + \
+    e.description = "Scan Owner: " + parsed_scan['owner'] + "\n" + \
+            "Scan Description: " + parsed_scan['description'] + "\n" + \
+            "Scan Type: " + parsed_scan['scan_type'] + "\n" + \
+            parsed_scan['scan_targets'] + "\n" + \
             "Scan Length: " + scan_length_desc
 
     
     # Set the schedule, if it exists
-    if "FREQ=ONETIME" not in rrules and rrules != "":
-        rrule_content = ContentLine(name='RRULE', params={}, value=rrules)
+    if "FREQ=ONETIME" not in parsed_scan['repeatRule'] and parsed_scan['repeatRule'] != "":
+        rrule_content = ContentLine(name='RRULE', params={}, value=parsed_scan['repeatRule'])
         e.extra.append(rrule_content)
  
-    dtstamp_set = convert_unix_time(creation_date)
+    dtstamp_set = convert_unix_time(parsed_scan['createdTime'])
     dtstamp_content = ContentLine(name='DTSTAMP', params={}, value=dtstamp_set)
     e.extra.append(dtstamp_content)
 
