@@ -26,7 +26,7 @@ Tested on python 3.10; will likely work on 3.6+
 * ~~Support Direct Agent Scans~~
 * ~~Pull network scan completetion times to estimate future runtime~~
 * Support multiple orgs
-* Support t.io
+* ~~Support t.io~~
 * Support Nessus (all flavors)  
 * Support T.sc Director
 

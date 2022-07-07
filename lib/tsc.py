@@ -2,7 +2,7 @@ import json
 from tenable.sc import TenableSC
 from ics import Event, Calendar, ContentLine
 import ast
-import lib.common
+import lib.tenb_common
 import uuid
 import random
 
@@ -22,13 +22,13 @@ def sc_parse(sc, c):
         if '{schedule[enabled]}'.format(**scan) == "true"  and '{schedule[start]}'.format(**scan) != "":
             parsed_scan['raw_timezone'] = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[0]
             parsed_scan['raw_start'] = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[1]
-            parsed_scan['starttime_utc'],parsed_scan['starttime_utc_dt'] = lib.common.return_utc(parsed_scan['raw_timezone'], parsed_scan['raw_start'])
+            parsed_scan['starttime_utc'],parsed_scan['starttime_utc_dt'] = lib.tenb_common.return_utc(parsed_scan['raw_timezone'], parsed_scan['raw_start'])
 
             # We're going to have to do fun things to determine scan endtimes.
             if '{maxScanTime}'.format(**scan) != 'unlimited':
                 # 'maxScanTime is in hours, so we convert to seconds
                 endtime = (int('{maxScanTime}'.format(**scan)) * 60 * 60)
-                parsed_scan['endtime_utc'] = lib.common.convert_unix_time(int(parsed_scan['starttime_utc_dt'].timestamp()) + endtime)
+                parsed_scan['endtime_utc'] = lib.tenb_common.convert_unix_time(int(parsed_scan['starttime_utc_dt'].timestamp()) + endtime)
                 parsed_scan['estimated_run'] = False
                 parsed_scan['scan_type'] = "Network"
             else:
@@ -48,8 +48,13 @@ def sc_parse(sc, c):
                     for result_match in matching_results:
                         scantime += int(result_match['scanDuration'])
                     endtime = ( scantime / 3 ) 
-                    parsed_scan['endtime_utc'] = lib.common.convert_unix_time(int(parsed_scan['starttime_utc_dt'].timestamp()) + endtime)
+                    parsed_scan['endtime_utc'] = lib.tenb_common.convert_unix_time(int(parsed_scan['starttime_utc_dt'].timestamp()) + endtime)
                     parsed_scan['estimated_run'] = True
+                else:
+                    # Set end time at an hour.
+                    parsed_scan['endtime_utc'] = lib.tenb_common.convert_unix_time(int(parsed_scan['starttime_utc_dt'].timestamp()) + 3600)
+                    parsed_scan['estimated_run'] = ""
+
 
             # Display some meaningful data around the scan targets
             asset_list = ""
@@ -69,7 +74,7 @@ def sc_parse(sc, c):
             parsed_scan['uuid'] = '{uuid}'.format(**scan)
         
             # Generate the event
-            e = lib.common.gen_event(parsed_scan)
+            e = lib.tenb_common.gen_event(parsed_scan)
 
             # add all to events
             c.events.append(e)
@@ -85,16 +90,16 @@ def sc_parse(sc, c):
         if '{schedule[start]}'.format(**scan) != "":
             parsed_scan['raw_timezone'] = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[0]
             parsed_scan['raw_start'] = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[1]
-            parsed_scan['starttime_utc'],parsed_scan['starttime_utc_dt'] = lib.common.return_utc(parsed_scan['raw_timezone'], parsed_scan['raw_start'])
+            parsed_scan['starttime_utc'],parsed_scan['starttime_utc_dt'] = lib.tenb_common.return_utc(parsed_scan['raw_timezone'], parsed_scan['raw_start'])
             
             # 'scanWindow should always be defined
             # 'scanWindow' is in minutes, so we convert to seconds
             endtime = (int('{scanWindow}'.format(**scan)) * 60)
-            parsed_scan['endtime_utc'] = lib.common.convert_unix_time(int(parsed_scan['starttime_utc_dt'].timestamp()) + endtime)
+            parsed_scan['endtime_utc'] = lib.tenb_common.convert_unix_time(int(parsed_scan['starttime_utc_dt'].timestamp()) + endtime)
             parsed_scan['estimated_run'] = False
 
             # We have to ask for more data around each agent scan because the tenable.sc api won't let us get it.
-            parsed_scan['agent_group'] = sc_response_parse(sc.get('agentScan/' + '{id}'.format(**scan) + '?fields=agentGroups'))['agentGroups']
+            agent_group = sc_response_parse(sc.get('agentScan/' + '{id}'.format(**scan) + '?fields=agentGroups'))['agentGroups']
 
             if len(agent_group) > 0:
                 for x in agent_group:
@@ -114,7 +119,7 @@ def sc_parse(sc, c):
             parsed_scan['description'] = '{description}'.format(**scan)
 
             # Generate the event
-            e = lib.common.gen_event(parsed_scan)
+            e = lib.tenb_common.gen_event(parsed_scan)
             
             # add all to events
             c.events.append(e)

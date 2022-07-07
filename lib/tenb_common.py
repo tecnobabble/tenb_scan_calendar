@@ -8,6 +8,13 @@ from ics import Event, Calendar, ContentLine
 def get_timezone(tz_str):
     return pytz.timezone(tz_str)
 
+def tenb_response_parse(response):
+    try:
+        return json.loads(response.text)['response']
+    except KeyError:
+        return json.loads(response.text)
+
+
 def is_dst(tz, datetime_to_check):
     """Determine whether or not Daylight Savings Time (DST)
     is currently in effect. From 
@@ -42,7 +49,11 @@ def return_utc(timezone,timestamp):
         timestamp_utc_dt = local_datetime(convert_dt_obj(timestamp), tz_format, dst)
         return dt_to_utc(timestamp_utc_dt),timestamp_utc_dt
 
-def gen_event(parsed_scan):
+def gen_event(parsed_scan: dict):
+    '''
+    gen_event will take a dictionary of scan information and create a calendar event object for it
+    '''
+
     # intialize a new event
     e = Event()
 
@@ -68,6 +79,11 @@ def gen_event(parsed_scan):
         scan_length_desc = "The max scan time has been set in the job."
     else:
         scan_length_desc = "The duration of the calendar event for this job has defaulted to 1 hour, as we cannot yet estimate how long it will take and no max has been set."
+
+    try:
+        parsed_scan['description']
+    except KeyError:
+        parsed_scan['description'] = "Not Available"
 
     e.description = "Scan Owner: " + parsed_scan['owner'] + "\n" + \
             "Scan Description: " + parsed_scan['description'] + "\n" + \

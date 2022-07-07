@@ -3,18 +3,9 @@
 from click import pass_context
 from ics import Event, Calendar, ContentLine
 import logging
-#from tenable.io import TenableIO
-from tenable.sc import TenableSC
 from decouple import config, UndefinedValueError
-
-
-import os
-
 from pprint import pprint
-
-import lib.auth
-import lib.common
-import lib.sc
+from lib import tenb_auth,tenb_common,tsc,tio
 
 
 #logging.basicConfig(level=logging.CRITICAL)
@@ -30,13 +21,11 @@ nessus_configured = False
 try:
     if config('IO_URL'):
         io_configured = True
-        print("io in env")
 except UndefinedValueError as err: 
     pass
 try:
     if config('SC_ADDRESS'):
         sc_configured = True
-        print("SC in env")
 except UndefinedValueError as err: 
     pass
 try:
@@ -62,6 +51,8 @@ if io_configured:
     io_access_key = config('IO_ACCESS_KEY', default="123e4567-e89b-12d3-a456-426614174000")
     io_secret_key = config('IO_SECRET_KEY', default="123e4567-e89b-12d3-a456-426614174000")
     print('IO Configured')
+    io = tenb_auth.tio_login(io_address, io_access_key, io_secret_key)
+    c.events = tio.io_parse(io, c)
 
 if sc_configured:
     sc_address = config('SC_ADDRESS', default="https://127.0.0.1")
@@ -69,8 +60,8 @@ if sc_configured:
     sc_secret_key = config('SC_SECRET_KEY', default="123e4567-e89b-12d3-a456-426614174000")
     sc_port = config('SC_PORT', default=443)
     print('SC Configured')
-    sc = lib.auth.tsc_login(sc_address, sc_access_key, sc_secret_key, sc_port)
-    c.events = lib.sc.sc_parse(sc, c)
+    sc = tenb_auth.tsc_login(sc_address, sc_access_key, sc_secret_key, sc_port)
+    c.events = tsc.sc_parse(sc, c)
 
 
 if nessus_configured:
