@@ -100,5 +100,17 @@ def gen_event(parsed_scan: dict):
     dtstamp_set = convert_unix_time(parsed_scan['createdTime'])
     dtstamp_content = ContentLine(name='DTSTAMP', params={}, value=dtstamp_set)
     e.extra.append(dtstamp_content)
+    status_content = ContentLine(name='STATUS', params={}, value='CONFIRMED')
+    e.extra.append(status_content)
 
+    return(e)
+
+def del_event(event: dict):
+    e = Event()
+    e.uid = event['uuid']
+    e.begin = datetime.utcnow()
+    cancel_content = ContentLine(name='METHOD', value='CANCEL')
+    e.extra.append(cancel_content)
+    cancel_content = ContentLine(name='STATUS', value='CANCELLED')
+    e.extra.append(cancel_content)
     return(e)

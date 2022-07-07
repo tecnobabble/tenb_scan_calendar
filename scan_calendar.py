@@ -71,22 +71,30 @@ if nessus_configured:
     nessus_port = config('NESSUS_PORT', default=8834)
     print('Nessus Configured')
 
+# try to remove deleted events
+try:
+    existing_events = []
+    tenb_ics_file = open("tenable_scans.ics", 'r')
+    for line in tenb_ics_file:
+        if "UID:" in line:
+            existing_events.append(line[4:].strip('\n'))
+    tenb_ics_file.close()
+except Exception as e:
+    pass
+
+current_events = []
+for event in c.events:
+    current_events.append(event.uid)
+
+for uuid in existing_events:
+    if uuid not in current_events:
+        e = {}
+        e['uuid'] = uuid
+        c.events.append(tenb_common.del_event(e))
+
 
 # Write out the calendar file
-with open('tenable_scans.ics', 'w') as my_file:
-    my_file.writelines(c)
+if c:
+    with open('tenable_scans.ics', 'w') as my_file:
+        my_file.writelines(c)
 
-'''
-elif scan.get('type') == "agent":
-            scan_type = "Agent"
-            scan_editor_id_path = "editor/scan/" + '{id}'.format(**scan)
-            scan_details_resp = sc.get(scan_editor_id_path)
-            scan_details = scan_details_resp.json().get('settings').get('basic').get('inputs')
-            for item in scan_details:
-                if item.get('id') == "scan_time_window":
-                    scan_window_time = item.get('default')
-            endtime = (scan_window_time * 60)
-            endtime_utc = convert_unix_time(int(starttime_utc_dt.timestamp()) + endtime)
-            estimated_run = False
-            
-'''

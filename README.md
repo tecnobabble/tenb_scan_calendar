@@ -33,7 +33,7 @@ Tested on python 3.10; will likely work on 3.6+
 ### Todo:
 * ~~Support Direct Agent Scans~~
 * ~~Pull network scan completetion times to estimate future runtime~~
-* maintain state to support deleted events
+* ~~maintain state to support deleted events~~
 * Support multiple orgs
 * ~~Support t.io~~
 * Support Nessus (all flavors)  
@@ -42,7 +42,7 @@ Tested on python 3.10; will likely work on 3.6+
 ### Problematic things:
 * Agent Sync Jobs in T.sc 
     * All the details we need are in the Agent Manager, not T.sc
-* Deleting events is possible; but need to maintain state about all scans to do so, so we know what to delete.
+* ~~Deleting events is possible; but need to maintain state about all scans to do so, so we know what to delete.~~
 
 ### Thanks
 Made possible largely by ics-py (https://github.com/ics-py/ics-py)
