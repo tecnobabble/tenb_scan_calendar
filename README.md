@@ -2,7 +2,9 @@
 
 Creates an .ics file that can be imported into your calendar management tool of choice to show when scans run and how long they're expected to take.
 
-t.sc supported initially, t.io support in future release
+***This tool is not an officially supported Tenable project***
+
+***Use of this tool is subject to the terms and conditions identified below, and is not subject to any license agreement you may have with Tenable***
 
 ### Config
 Sample .env file in same folder as script:
@@ -46,3 +48,10 @@ Tested on python 3.10; will likely work on 3.6+
 
 ### Thanks
 Made possible largely by ics-py (https://github.com/ics-py/ics-py)
+
+## Contributing
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+
+## License
+[GNU GPL](https://choosealicense.com/licenses/gpl-3.0/)
