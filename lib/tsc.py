@@ -19,15 +19,15 @@ def sc_parse(sc, c):
     # All the actual processing goes here for network scans
     for scan in sc.scans.list(['id','name','policy','schedule', 'createdTime', 'owner','maxScanTime', 'ipList', 'assets', 'description'])['manageable']:
         parsed_scan = {}
-        if '{schedule[enabled]}'.format(**scan) == "true"  and '{schedule[start]}'.format(**scan) != "":
-            parsed_scan['raw_timezone'] = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[0]
-            parsed_scan['raw_start'] = '{schedule[start]}'.format(**scan).split('=')[1].split(':')[1]
+        if scan['schedule']['enabled'] == "true"  and scan['schedule']['start'] != "":
+            parsed_scan['raw_timezone'] = scan['schedule']['start'].split('=')[1].split(':')[0]
+            parsed_scan['raw_start'] = scan['schedule']['start'].split('=')[1].split(':')[1]
             parsed_scan['starttime_utc'],parsed_scan['starttime_utc_dt'] = lib.tenb_common.return_utc(parsed_scan['raw_timezone'], parsed_scan['raw_start'])
 
             # We're going to have to do fun things to determine scan endtimes.
-            if '{maxScanTime}'.format(**scan) != 'unlimited':
+            if scan['maxScanTime'] != 'unlimited':
                 # 'maxScanTime is in hours, so we convert to seconds
-                endtime = (int('{maxScanTime}'.format(**scan)) * 60 * 60)
+                endtime = (int(scan['maxScanTime']) * 60 * 60)
                 parsed_scan['endtime_utc'] = lib.tenb_common.convert_unix_time(int(parsed_scan['starttime_utc_dt'].timestamp()) + endtime)
                 parsed_scan['estimated_run'] = False
                 parsed_scan['scan_type'] = "Network"
@@ -41,8 +41,8 @@ def sc_parse(sc, c):
                 scantime = int()
                 # loop through scan results and match up with scan name and policy name
                 for result in tsc_scan_results:
-                    if '{name}'.format(**scan) == '{name}'.format(**result) and '{details}'.format(**result) == '{policy[name]}'.format(**scan) and '{scanDuration}'.format(**result) != "-1":
-                        matching_results.append({'finishTime': '{finishTime}'.format(**result), 'scanDuration': '{scanDuration}'.format(**result)})
+                    if scan['name'] == result['name'] and result['details'] == scan['policy']['name'] and result['scanDuration'] != "-1":
+                        matching_results.append({'finishTime': result['finishTime'], 'scanDuration': result['scanDuration']})
                 matching_results = sorted(matching_results, key=lambda d: d['finishTime'])[-3:]
                 if len(matching_results) == 3:
                     for result_match in matching_results:

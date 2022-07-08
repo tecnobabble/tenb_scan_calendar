@@ -13,8 +13,8 @@ def nessus_parse(nessus, c):
             scan_details = nessus.editor.details('scan', scan['id'])
 
             # Figure out start timing
-            parsed_scan['raw_timezone'] = '{timezone}'.format(**scan)
-            parsed_scan['raw_start'] = '{starttime}'.format(**scan)
+            parsed_scan['raw_timezone'] = scan['timezone']
+            parsed_scan['raw_start'] = scan['starttime']
             parsed_scan['starttime_utc'],parsed_scan['starttime_utc_dt'] = lib.tenb_common.return_utc(parsed_scan['raw_timezone'], parsed_scan['raw_start'])
 
             # End time's are fun
@@ -88,11 +88,11 @@ def nessus_parse(nessus, c):
                 parsed_scan['scan_targets'] = "Targeted Agent Groups: " + scan_ag_list
 
             # Direct data pulls:
-            parsed_scan['name'] = '{name}'.format(**scan)
-            parsed_scan['repeatRule'] = '{rrules}'.format(**scan)
-            parsed_scan['owner'] = '{owner}'.format(**scan)
-            parsed_scan['uuid'] = '{uuid}'.format(**scan)[9:]
-            parsed_scan['createdTime'] = int('{creation_date}'.format(**scan))
+            parsed_scan['name'] = scan['name']
+            parsed_scan['repeatRule'] = scan['rrules'] 
+            parsed_scan['createdTime'] = int(scan['creation_date'])
+            parsed_scan['owner'] = scan['owner']
+            parsed_scan['uuid'] = scan['uuid'][9:]
 
             # Generate the event
             e = lib.tenb_common.gen_event(parsed_scan)

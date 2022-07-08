@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from click import pass_context
+#from click import pass_context
 from ics import Event, Calendar, ContentLine
 import logging
 from decouple import config, UndefinedValueError
