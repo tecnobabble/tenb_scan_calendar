@@ -82,6 +82,8 @@ def gen_event(parsed_scan: dict):
 
     try:
         parsed_scan['description']
+        if not parsed_scan['description']:
+            parsed_scan['description'] = "Not Available"
     except KeyError:
         parsed_scan['description'] = "Not Available"
 
@@ -91,7 +93,6 @@ def gen_event(parsed_scan: dict):
             parsed_scan['scan_targets'] + "\n" + \
             "Scan Length: " + scan_length_desc
 
-    
     # Set the schedule, if it exists
     if "FREQ=ONETIME" not in parsed_scan['repeatRule'] and parsed_scan['repeatRule'] != "":
         rrule_content = ContentLine(name='RRULE', params={}, value=parsed_scan['repeatRule'])

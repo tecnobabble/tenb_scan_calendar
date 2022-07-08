@@ -5,7 +5,7 @@ from ics import Event, Calendar, ContentLine
 import logging
 from decouple import config, UndefinedValueError
 from pprint import pprint
-from lib import tenb_auth,tenb_common,tsc,tio
+from lib import tenb_auth,tenb_common,tsc,tio,nessus
 
 
 #logging.basicConfig(level=logging.CRITICAL)
@@ -29,9 +29,8 @@ try:
 except UndefinedValueError as err: 
     pass
 try:
-    if config('NESSUS_ADDRESS'):
+    if config('NESSUS_URL'):
         nessus_configured = True
-        print('nessus in env')
 except UndefinedValueError as err: 
     pass
 
@@ -63,13 +62,14 @@ if sc_configured:
     sc = tenb_auth.tsc_login(sc_address, sc_access_key, sc_secret_key, sc_port)
     c.events = tsc.sc_parse(sc, c)
 
-
 if nessus_configured:
-    nessus_address = config('NESSUS_ADDRESS', default="https://127.0.0.1")
+    nessus_address = config('NESSUS_URL', default="https://127.0.0.1")
     nessus_access_key = config('NESSUS_ACCESS_KEY', default="123e4567-e89b-12d3-a456-426614174000")
     nessus_secret_key = config('NESSUS_SECRET_KEY', default="123e4567-e89b-12d3-a456-426614174000")
     nessus_port = config('NESSUS_PORT', default=8834)
     print('Nessus Configured')
+    tnessus = tenb_auth.nessus_login(nessus_address, nessus_access_key, nessus_secret_key)
+    c.events = nessus.nessus_parse(tnessus, c)
 
 # try to remove deleted events
 try:

@@ -12,12 +12,16 @@ Sample .env file in same folder as script:
 ```
 SC_ACCESS_KEY=aaaaaaabbbbbbccccddddeeeffff1234  
 SC_SECRET_KEY=aaaaaaabbbbbbccccddddeeeffff1234   
-SC_ADDRESS=10.0.0.102  
+SC_ADDRESS=10.0.0.100  
 SC_PORT=443  
 
 IO_URL=https://cloud.tenable.com
 IO_ACCESS_KEY=aaaaaaabbbbbbccccddddeeeffff1234
 IO_SECRET_KEY=aaaaaaabbbbbbccccddddeeeffff1234
+
+NESSUS_URL=https://10.0.0.101:8834
+NESSUS_ACCESS_KEY=aaaaaaabbbbbbccccddddeeeffff1234
+NESSUS_SECRET_KEY=aaaaaaabbbbbbccccddddeeeffff1234
 ```
 ### Requirements
 #### T.sc
@@ -30,6 +34,9 @@ IO_SECRET_KEY=aaaaaaabbbbbbccccddddeeeffff1234
 #### T.io
 * Get API keys for a user that can manage/see all scans
 
+#### Nessus
+* Get API keys for a user that can manage/see all scans
+
 Tested on python 3.10; will likely work on 3.6+
 
 ### Todo:
@@ -38,13 +45,8 @@ Tested on python 3.10; will likely work on 3.6+
 * ~~maintain state to support deleted events~~
 * Support multiple orgs
 * ~~Support t.io~~
-* Support Nessus (all flavors)  
+* ~~Support Nessus (all flavors)~~  
 * Support T.sc Director
-
-### Problematic things:
-* Agent Sync Jobs in T.sc 
-    * All the details we need are in the Agent Manager, not T.sc
-* ~~Deleting events is possible; but need to maintain state about all scans to do so, so we know what to delete.~~
 
 ### Thanks
 Made possible largely by ics-py (https://github.com/ics-py/ics-py)

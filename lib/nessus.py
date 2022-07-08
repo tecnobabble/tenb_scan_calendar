@@ -1,16 +1,16 @@
 import json
-from tenable.io import TenableIO
+from tenable.nessus import Nessus
 from ics import Event, Calendar, ContentLine
 from pprint import pprint
 import lib.tenb_common
 import ast
 
-def io_parse(tio, c):
-    for scan in tio.scans.list():
+def nessus_parse(nessus, c):
+    for scan in nessus.scans.list()['scans']:
         parsed_scan = {}
         # Scan must be enabled and not have triggers in order to have a calendar schedule
-        if scan['enabled'] == True and scan['has_triggers'] == False and scan['status'] != 'empty':# and scan['name'] == "Full plugin test":
-            scan_details = lib.tenb_common.tenb_response_parse(tio.get('editor/scan/' + scan['schedule_uuid']))
+        if scan['enabled'] == True and scan['starttime']:# and scan['name'] == "Full plugin test":
+            scan_details = nessus.editor.details('scan', scan['id'])
 
             # Figure out start timing
             parsed_scan['raw_timezone'] = '{timezone}'.format(**scan)
@@ -18,14 +18,14 @@ def io_parse(tio, c):
             parsed_scan['starttime_utc'],parsed_scan['starttime_utc_dt'] = lib.tenb_common.return_utc(parsed_scan['raw_timezone'], parsed_scan['raw_start'])
 
             # End time's are fun
-            if scan['type'] == "remote" or scan['type'] == "ps" and scan['status'] == "completed" or scan['status'] == "aborted" or scan['status'] == "running":
+            if scan['type'] == "remote" or scan['type'] == "local" and scan['status'] == "completed" or scan['status'] == "aborted" or scan['status'] == "running":
                 scan_time = 0
                 history_count = 0
                 avg_scan_time = 0
-                scan_history = tio.scans.history(scan['schedule_uuid'], limit=10, sort=(("start_date", "desc"),))
+                scan_history = nessus.scans.details(scan['id'])['history']
                 for item in scan_history:
                     if item['status'] == "completed":
-                        scan_time += item['time_end'] - item['time_start']
+                        scan_time += item['last_modification_date'] - item['creation_date']
                         history_count += 1
                         if history_count == 3:
                             avg_scan_time = round(int(scan_time) / 3)
@@ -67,20 +67,20 @@ def io_parse(tio, c):
                     "Targeted Target Groups:" + tg_list
 
             elif scan['type'] == 'agent':
-                for item in scan_details['settings']['basic']['groups']:
-                    if item['name'] == "agent_scan_launch_type":
-                        scan_window = int(item["inputs"][0]['default']) * 60
-                parsed_scan['estimated_run'] = False
-                parsed_scan['scan_type'] = "Agent"
-                parsed_scan['endtime_utc'] = lib.tenb_common.convert_unix_time(int(parsed_scan['starttime_utc_dt'].timestamp()) + scan_window)
 
-                # Get a list of agent groups in the scan
                 scan_ag_list = ""
                 for item in scan_details['settings']['basic']['inputs']:
                     if scan_item['id'] == "description":
                         parsed_scan['description'] = scan_item["default"]
 
-                    if item['name'] == "Agent Groups":
+                    if item['id'] == "scan_time_window":
+                        scan_window = int(item['default']) * 60
+                        parsed_scan['estimated_run'] = False
+                        parsed_scan['scan_type'] = "Agent"
+                        parsed_scan['endtime_utc'] = lib.tenb_common.convert_unix_time(int(parsed_scan['starttime_utc_dt'].timestamp()) + scan_window)
+
+                    # Get a list of agent groups in the scan
+                    if item['id'] == "agent_group_id":
                         for agent_group in item['default']:
                             for ag_group in item['options']:
                                 if agent_group == ag_group['id']:
@@ -91,7 +91,7 @@ def io_parse(tio, c):
             parsed_scan['name'] = '{name}'.format(**scan)
             parsed_scan['repeatRule'] = '{rrules}'.format(**scan)
             parsed_scan['owner'] = '{owner}'.format(**scan)
-            parsed_scan['uuid'] = '{schedule_uuid}'.format(**scan)[9:]
+            parsed_scan['uuid'] = '{uuid}'.format(**scan)[9:]
             parsed_scan['createdTime'] = int('{creation_date}'.format(**scan))
 
             # Generate the event
@@ -101,3 +101,4 @@ def io_parse(tio, c):
             c.events.append(e)
 
     return c.events
+
