@@ -7,14 +7,13 @@ import uuid
 import random
 
 # Define Functions
-def sc_response_parse(response):
-    return json.loads(response.text)['response']
+
 
 def sc_parse(sc, c):
     rd = random.Random()
 
     # Pull scan results as we will use them later
-    tsc_scan_results = sc_response_parse(sc.get('scanResult?fields=id,name,finishTime,description,repository,details,scanDuration&filter=optimizeCompletedScans'))['manageable']
+    tsc_scan_results = lib.tenb_common.tenb_response_parse(sc.get('scanResult?fields=id,name,finishTime,description,repository,details,scanDuration&filter=optimizeCompletedScans'))['manageable']
 
     # All the actual processing goes here for network scans
     for scan in sc.scans.list(['id','name','policy','schedule', 'createdTime', 'owner','maxScanTime', 'ipList', 'assets', 'description'])['manageable']:
@@ -81,7 +80,7 @@ def sc_parse(sc, c):
     
 
     # Let's pull regular agent jobs
-    for scan in sc_response_parse(sc.get('agentScan?fields=id,name,description,createdTime,owner,schedule,scanWindow,nessusManager,repository'))['manageable']:
+    for scan in lib.tenb_common.tenb_response_parse(sc.get('agentScan?fields=id,name,description,createdTime,owner,schedule,scanWindow,nessusManager,repository'))['manageable']:
         parsed_scan = {}
         group_list = ""
         agent_group = ""
@@ -99,7 +98,7 @@ def sc_parse(sc, c):
             parsed_scan['estimated_run'] = False
 
             # We have to ask for more data around each agent scan because the tenable.sc api won't let us get it.
-            agent_group = sc_response_parse(sc.get('agentScan/' + '{id}'.format(**scan) + '?fields=agentGroups'))['agentGroups']
+            agent_group = lib.tenb_common.tenb_response_parse(sc.get('agentScan/' + '{id}'.format(**scan) + '?fields=agentGroups'))['agentGroups']
 
             if len(agent_group) > 0:
                 for x in agent_group:
