@@ -88,7 +88,7 @@ def io_parse(tio, c):
                 parsed_scan['scan_targets'] = "Targeted Agent Groups: " + scan_ag_list
 
             # Direct data pulls:
-            parsed_scan['name'] = '{name}'.format(**scan)
+            parsed_scan['name'] = scan['name'] #'{name}'.format(**scan)
             parsed_scan['repeatRule'] = '{rrules}'.format(**scan)
             parsed_scan['owner'] = '{owner}'.format(**scan)
             parsed_scan['uuid'] = '{schedule_uuid}'.format(**scan)[9:]
