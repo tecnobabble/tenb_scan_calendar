@@ -10,18 +10,18 @@ Creates an .ics file that can be imported into your calendar management tool of 
 Sample .env file in same folder as script:
 
 ```
-SC_ACCESS_KEY=aaaaaaabbbbbbccccddddeeeffff1234  
-SC_SECRET_KEY=aaaaaaabbbbbbccccddddeeeffff1234   
+SC_ACCESS_KEY=123e4567-e89b-12d3-a456-426614174000  
+SC_SECRET_KEY=123e4567-e89b-12d3-a456-426614174000  
 SC_ADDRESS=10.0.0.100  
 SC_PORT=443  
 
 IO_URL=https://cloud.tenable.com
-IO_ACCESS_KEY=aaaaaaabbbbbbccccddddeeeffff1234
-IO_SECRET_KEY=aaaaaaabbbbbbccccddddeeeffff1234
+IO_ACCESS_KEY=123e4567-e89b-12d3-a456-426614174000  
+IO_SECRET_KEY=123e4567-e89b-12d3-a456-426614174000  
 
 NESSUS_URL=https://10.0.0.101:8834
-NESSUS_ACCESS_KEY=aaaaaaabbbbbbccccddddeeeffff1234
-NESSUS_SECRET_KEY=aaaaaaabbbbbbccccddddeeeffff1234
+NESSUS_ACCESS_KEY=123e4567-e89b-12d3-a456-426614174000  
+NESSUS_SECRET_KEY=123e4567-e89b-12d3-a456-426614174000  
 ```
 ### Requirements
 #### T.sc
