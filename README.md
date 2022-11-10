@@ -36,12 +36,12 @@ NESSUS_SECRET_KEY=aaaaaaabbbbbbccccddddeeeffff1234
 #### T.io
 * Get API keys for a user that can manage/see all scans
 
-![example google calendar output](https://res.cloudinary.com/salted-security/image/upload/v1668117471/Github/tenb_google_calendar_visual.png)
-
 #### Nessus
 * Get API keys for a user that can manage/see all scans
 
 Tested on python 3.10; will likely work on 3.6+
+
+![example google calendar output](https://res.cloudinary.com/salted-security/image/upload/v1668117471/Github/tenb_google_calendar_visual.png)
 
 ### Todo:
 * ~~Support Direct Agent Scans~~
