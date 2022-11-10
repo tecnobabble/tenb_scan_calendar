@@ -2,6 +2,8 @@
 
 Creates an .ics file that can be imported into your calendar management tool of choice to show when scans run and how long they're expected to take.
 
+If a max_scan time or enough scans have previously run (3), the script will define/estimate future scan lengths.  If not available, defaults to 1 hour.
+
 ***This tool is not an officially supported Tenable project***
 
 ***Use of this tool is subject to the terms and conditions identified below, and is not subject to any license agreement you may have with Tenable***
@@ -33,6 +35,8 @@ NESSUS_SECRET_KEY=aaaaaaabbbbbbccccddddeeeffff1234
 
 #### T.io
 * Get API keys for a user that can manage/see all scans
+
+![example google calendar output](https://res.cloudinary.com/salted-security/image/upload/v1668117471/Github/tenb_google_calendar_visual.png)
 
 #### Nessus
 * Get API keys for a user that can manage/see all scans
