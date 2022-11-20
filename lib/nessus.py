@@ -5,7 +5,7 @@ from pprint import pprint
 import lib.tenb_common
 import ast
 
-def nessus_parse(nessus: Type[tenable.nessus.Nessus], c: Type[ics.icalendar.Calendar]):
+def nessus_parse(nessus: Nessus, c: Calendar):
     for scan in nessus.scans.list()['scans']:
         parsed_scan = {}
         # Scan must be enabled and not have triggers in order to have a calendar schedule
@@ -70,8 +70,8 @@ def nessus_parse(nessus: Type[tenable.nessus.Nessus], c: Type[ics.icalendar.Cale
 
                 scan_ag_list = ""
                 for item in scan_details['settings']['basic']['inputs']:
-                    if scan_item['id'] == "description":
-                        parsed_scan['description'] = scan_item["default"]
+                    if item['id'] == "description":
+                        parsed_scan['description'] = item["default"]
 
                     if item['id'] == "scan_time_window":
                         scan_window = int(item['default']) * 60
