@@ -77,8 +77,8 @@ def io_parse(tio, c):
                 # Get a list of agent groups in the scan
                 scan_ag_list = ""
                 for item in scan_details['settings']['basic']['inputs']:
-                    if scan_item['id'] == "description":
-                        parsed_scan['description'] = scan_item["default"]
+                    if item['id'] == "description":
+                        parsed_scan['description'] = item["default"]
 
                     if item['name'] == "Agent Groups":
                         for agent_group in item['default']:
