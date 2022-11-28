@@ -95,6 +95,10 @@ for uuid in existing_events:
 
 # Write out the calendar file
 if c:
-    with open('tenable_scans.ics', 'w') as my_file:
-        my_file.writelines(c)
+    if config('IS_TENB_SCAN_CALENDAR_DOCKER'):
+        with open('output/tenable_scans.ics', 'w') as my_file:
+            my_file.writelines(c)
+    else:
+        with open('tenable_scans.ics', 'w') as my_file:
+            my_file.writelines(c)
 
