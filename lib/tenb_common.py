@@ -3,7 +3,7 @@ import json
 import pytz
 from datetime import datetime
 from dateutil import parser
-from ics import Event, Calendar, ContentLine
+from ics import Event, ContentLine
 
 def get_timezone(tz_str):
     return pytz.timezone(tz_str)

@@ -1,9 +1,6 @@
-import json
-from tenable.io import TenableIO
-from ics import Event, Calendar, ContentLine
-from pprint import pprint
+
 import lib.tenb_common
-import ast
+
 
 def io_parse(tio, c):
     for scan in tio.scans.list():

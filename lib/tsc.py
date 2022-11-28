@@ -1,13 +1,10 @@
-import json
-from tenable.sc import TenableSC
-from ics import Event, Calendar, ContentLine
+
 import ast
 import lib.tenb_common
 import uuid
 import random
 
 # Define Functions
-
 
 def sc_parse(sc, c):
     rd = random.Random()
