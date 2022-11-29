@@ -22,3 +22,4 @@ ENTRYPOINT [ "/bin/bash", "start_container.sh" ]
 WORKDIR /home/scan_calendar
 
 HEALTHCHECK NONE
+LABEL org.opencontainers.image.source="https://github.com/tecnobabble/tenb_scan_calendar"

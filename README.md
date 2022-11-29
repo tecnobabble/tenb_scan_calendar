@@ -9,7 +9,7 @@ Creates an .ics file that can be imported into your calendar management tool of 
 ### General usage
 Docker is recommended; be sure to pass the proper .env file
 ```
-docker run -d --rm --env-file .env -v ${PWD}/:/home/scan_calendar/output/ -v ${PWD}/logs:/home/scan_calendar/output/logs tenb_scan_calendar:latest
+docker run -d --rm --env-file .env -v ${PWD}/:/home/scan_calendar/output/ -v ${PWD}/logs:/home/scan_calendar/output/logs tecnobabble/tenb_scan_calendar:latest
 ```
 
 You can also just run from Python directly:
