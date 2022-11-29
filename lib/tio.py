@@ -1,8 +1,20 @@
-
+"""Parse Tenable.io scan data into iCal event."""
 import lib.tenb_common
+from tenable.io import TenableIO
+from ics import Calendar
 
 
-def io_parse(tio, c):
+def io_parse(tio: TenableIO, c: Calendar):
+    """
+    Return a calendar object from Tenable.io scan data.
+
+        Parameters:
+                tio (class): pyTenable's Tenable.io object
+                c (class): Full iCal object from ics-py
+
+        Returns:
+                c.events (list): List of events for iCal object
+    """
     for scan in tio.scans.list():
         parsed_scan = {}
         # Scan must be enabled and not have triggers in order to have a

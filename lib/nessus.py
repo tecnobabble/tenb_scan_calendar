@@ -1,3 +1,8 @@
+"""Parse Tenable Nessus scan data into iCal event.
+
+Returns:
+    c.events (list): List of events for iCal object
+"""
 
 from tenable.nessus import Nessus
 from ics import Calendar
@@ -5,6 +10,16 @@ import lib.tenb_common
 
 
 def nessus_parse(nessus: Nessus, c: Calendar):
+    """
+    Return a calendar object from Nessus scan data.
+
+        Parameters:
+                nessus (class): pyTenable's Nessus object
+                c (class): Full iCal object from ics-py
+
+        Returns:
+                c.events (list): List of events for iCal object
+    """
     for scan in nessus.scans.list()['scans']:
         parsed_scan = {}
         # Scan must be enabled and not have triggers in order to have a

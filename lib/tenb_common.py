@@ -1,16 +1,35 @@
+"""Common functions for tenb_scan_calendar."""
 
 import json
 import pytz
 from datetime import datetime
 from dateutil import parser
 from ics import Event, ContentLine
+from datetime import tzinfo
+from requests import Response
 
 
-def get_timezone(tz_str):
+def get_timezone(tz_str: str):
+    """Convert a timezone string to datetime.tzinfo object.
+
+    Args:
+        tz_str (str): timezone in a string
+
+    Returns:
+        tzinfo: datetime.tzinfo object
+    """
     return pytz.timezone(tz_str)
 
 
-def tenb_response_parse(response):
+def tenb_response_parse(response: Response):
+    """Parse a requests response into json.
+
+    Args:
+        response (Response): Response object from requests
+
+    Returns:
+        json: json object
+    """
     try:
         return json.loads(response.text)['response']
     except KeyError:
@@ -18,12 +37,12 @@ def tenb_response_parse(response):
 
 
 def is_dst(tz, datetime_to_check):
-    ''' Determine DST or not
+    """Determine DST or not.
+
     Determine whether or not Daylight Savings Time (DST)
     is currently in effect. From
     https://gist.github.com/dpapathanasiou/09bd2885813038d7d3eb
-    '''
-
+    """
     # Jan 1 of this year, when all tz assumed to not be in dst
     non_dst = datetime(year=datetime.now().year, month=1, day=1)
     # Make time zone aware based on tz passed in
@@ -33,27 +52,78 @@ def is_dst(tz, datetime_to_check):
     return not (non_dst_tz_aware.utcoffset() == datetime_to_check.utcoffset())
 
 
-def convert_dt_obj(dt):
+def convert_dt_obj(dt: str):
+    """Convert date string to datetime object.
+
+    Args:
+        dt (str): datetime string in %Y%m%dT%H%M%S
+
+    Returns:
+        datetime: datetime object
+    """
     return datetime.strptime(dt, "%Y%m%dT%H%M%S")
 
 
-def local_datetime(dt, tz, dst):
+def local_datetime(dt: datetime, tz: tzinfo, dst: bool):
+    """Return proper datetime if in DST in given Timezone.
+
+    Args:
+        dt (datetime): datetime object
+        tz (tzinfo): datetime timezone object
+        dst (bool): Observing DST yes or no
+
+    Returns:
+        datetime: localized datetime based on TZ and DST
+    """
     return tz.localize(dt, is_dst=dst)
 
 
-def dt_to_utc(local_dt):
+def dt_to_utc(local_dt: datetime):
+    """Convert local timezone datetime object to UTC datetime object.
+
+    Args:
+        local_dt (datetime): datetime based on local timezone
+
+    Returns:
+        datetime: datetime based on utc
+    """
     return local_dt.astimezone(pytz.utc).strftime('%Y%m%dT%H%M%SZ')
 
 
-def convert_unix_time(time):
+def convert_unix_time(time: str):
+    """Convert Unix Time str to datetime object.
+
+    Args:
+        time (str): unixtime string
+
+    Returns:
+        Event: iCalendar Event object
+    """
     return datetime.utcfromtimestamp(time).strftime('%Y%m%dT%H%M%SZ')
 
 
-def list_avg(lst):
+def list_avg(lst: list):
+    """Return average of integers in a list.
+
+    Args:
+        lst (list): a list object of numbers
+
+    Returns:
+        int: average of the items in the list
+    """
     return sum(lst) / len(lst)
 
 
-def return_utc(timezone, timestamp):
+def return_utc(timezone: str, timestamp: str):
+    """Provide datetime object in UTC and local time.
+
+    Args:
+        timezone (str): Timezone in a string
+        timestamp (str): timestamp in a string
+
+    Returns:
+        datetime, datetime: Local time in datetime and UTC datetime
+    """
     tz_format = get_timezone(timezone)
     dst = is_dst(timezone, convert_dt_obj(timestamp))
     timestamp_utc_dt = local_datetime(convert_dt_obj(timestamp), tz_format,
@@ -62,11 +132,14 @@ def return_utc(timezone, timestamp):
 
 
 def gen_event(parsed_scan: dict):
-    '''
-    gen_event will take a dictionary of scan information and create a
-    calendar event object for it
-    '''
+    """Take a dictionary of scan info and create a calendar event for it.
 
+    Args:
+        parsed_scan (dict): parsed scan dictionary
+
+    Returns:
+        datetime: datetime object
+    """
     # intialize a new event
     e = Event()
 
@@ -128,7 +201,15 @@ def gen_event(parsed_scan: dict):
     return (e)
 
 
-def del_event(event: dict):
+def del_event(event: Event):
+    """Mark event as canceled in Calendar Event object.
+
+    Args:
+        event (Event): iCalendar Event object
+
+    Returns:
+        Event: iCalendar Event object
+    """
     e = Event()
     e.uid = event['uuid']
     e.begin = datetime.utcnow()

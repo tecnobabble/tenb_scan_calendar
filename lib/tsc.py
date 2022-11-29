@@ -1,13 +1,26 @@
+"""Parse Tenable.sc scan data into iCal event."""
 
-import ast
 import lib.tenb_common
+import ast
 import uuid
 import random
+from tenable.sc import TenableSC
+from ics import Calendar
 
 # Define Functions
 
 
-def sc_parse(sc, c):
+def sc_parse(sc: TenableSC, c: Calendar):
+    """
+    Return a calendar object from Tenable.sc scan data.
+
+        Parameters:
+                sc (class): pyTenable's TenableSC object
+                c (class): Full iCal object from ics-py
+
+        Returns:
+                c.events (list): List of events for iCal object
+    """
     rd = random.Random()
 
     # Pull scan results as we will use them later

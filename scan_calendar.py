@@ -1,3 +1,4 @@
+"""Main program for tenb_scan_calendar."""
 # !/usr/bin/env python
 
 from ics import Calendar
@@ -91,7 +92,7 @@ if nessus_configured:
     nessus_port = config('NESSUS_PORT', default=8834)
     logging.debug('Testing Nessus Connection...')
     tnessus = tenb_auth.nessus_login(nessus_address, nessus_access_key,
-                                     nessus_secret_key)
+                                     nessus_secret_key, nessus_port)
     logging.info('Validated Nessus Connection, pulling scan data')
     c.events = nessus.nessus_parse(tnessus, c)
 
