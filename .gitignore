@@ -3,3 +3,4 @@
 *.ics
 *.DS_Store
 *.pyc
+logs/*

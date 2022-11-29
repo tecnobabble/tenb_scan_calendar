@@ -39,9 +39,25 @@ NESSUS_SECRET_KEY=aaaaaaabbbbbbccccddddeeeffff1234
 #### Nessus
 * Get API keys for a user that can manage/see all scans
 
-Tested on python 3.10; will likely work on 3.6+
+Tested on python 3.10+; will likely work on 3.6+
+
+### General usage
+Docker is recommended; be sure to pass the proper .env file
+```
+docker run -d --rm --env-file .env -v ${PWD}/:/home/scan_calendar/output/ -v ${PWD}/logs:/home/scan_calendar/output/logs tenb_scan_calendar:latest
+```
+
+You can also just run from Python directly:
+```
+python scan_calendar.py
+```
+
 
 ![example google calendar output](https://res.cloudinary.com/salted-security/image/upload/v1668117471/Github/tenb_google_calendar_visual.png)
+
+
+### Troubleshooting
+Add "DEBUG=TRUE" to your env file and re-run the script. See the logs in the generated 'logs' folder. If you're still unsure, open an Issue.
 
 ### Todo:
 * ~~Support Direct Agent Scans~~
@@ -51,13 +67,14 @@ Tested on python 3.10; will likely work on 3.6+
 * ~~Support t.io~~
 * ~~Support Nessus (all flavors)~~  
 * Support T.sc Director
+* ~~support running from docker~~
+* ~~support debug mode~~
 
 ### Thanks
 Made possible largely by ics-py (https://github.com/ics-py/ics-py)
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-
 
 ## License
 [GNU GPL](https://choosealicense.com/licenses/gpl-3.0/)

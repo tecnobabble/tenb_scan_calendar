@@ -1,9 +1,8 @@
-import json
+
 from tenable.nessus import Nessus
-from ics import Event, Calendar, ContentLine
-from pprint import pprint
+from ics import Calendar
 import lib.tenb_common
-import ast
+
 
 def nessus_parse(nessus: Nessus, c: Calendar):
     for scan in nessus.scans.list()['scans']:
