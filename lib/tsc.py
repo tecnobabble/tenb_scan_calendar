@@ -25,8 +25,9 @@ def sc_parse(sc: TenableSC, c: Calendar):
 
     # Pull scan results as we will use them later
     tsc_scan_results = lib.tenb_common.tenb_response_parse(
-        sc.get('scanResult?fields=id,name,finishTime,description,repository,\
-            details,scanDuration&filter=optimizeCompletedScans'))['manageable']
+        sc.get('scanResult?fields=id,name,finishTime,description,repository,'\
+            'details,scanDuration&filter=optimizeCompletedScans')
+            )['manageable']
 
     # All the actual processing goes here for network scans
     for scan in sc.scans.list(['id', 'name', 'policy', 'schedule',
@@ -65,7 +66,6 @@ def sc_parse(sc: TenableSC, c: Calendar):
                 # policy name
                 for result in tsc_scan_results:
                     if scan['name'] == result['name'] \
-                        and result['details'] == scan['policy']['name'] \
                             and result['scanDuration'] != "-1":
                         matching_results.append(
                             {'finishTime': result['finishTime'],
@@ -114,13 +114,13 @@ def sc_parse(sc: TenableSC, c: Calendar):
 
     # Let's pull regular agent jobs
     for scan in lib.tenb_common.tenb_response_parse(
-            sc.get('agentScan?fields=id,name,description,createdTime,owner,\
-                schedule,scanWindow,nessusManager,repository'))['manageable']:
+            sc.get('agentScan?fields=id,name,description,createdTime,' \
+                   'owner,schedule,scanWindow,nessusManager,repository')
+                                                    )['manageable']:
         parsed_scan = {}
         group_list = ""
         agent_group = ""
         parsed_scan['scan_type'] = "Agent"
-
         if '{schedule[start]}'.format(**scan) != "":
             parsed_scan['raw_timezone'] = '{schedule[start]}'.\
                 format(**scan).split('=')[1].split(':')[0]
