@@ -7,13 +7,16 @@ Creates an .ics file that can be imported into your calendar management tool of 
 ***Use of this tool is subject to the terms and conditions identified below, and is not subject to any license agreement you may have with Tenable***
 
 ### General usage
-Docker is recommended; be sure to pass the proper .env file
+Docker is recommended; be sure to pass the proper .env file. Works well on Docker for Mac or Windows.
 ```
 docker run -d --rm --env-file .env -v ${PWD}/:/home/scan_calendar/output/ -v ${PWD}/logs:/home/scan_calendar/output/logs tecnobabble/tenb_scan_calendar:latest
 ```
 
-You can also just run from Python directly:
+You can also just run from Python directly (recommended for Docker on Linux):
+
+(Requires python 3.6 or higher; suggest pyenv)
 ```
+pip install -r requirements.txt
 python scan_calendar.py
 ```
 
