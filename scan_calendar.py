@@ -109,7 +109,6 @@ for uuid in existing_events:
         e['uuid'] = uuid
         c.events.append(tenb_common.del_event(e))
 
-print(docker_configured)
 # Write out the calendar file
 if c:
     if docker_configured:
